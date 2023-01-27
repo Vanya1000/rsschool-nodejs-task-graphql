@@ -239,6 +239,92 @@ const UpdateUserInputType = new GraphQLInputObjectType({
   description: 'User input type',
 });
 
+export const createProfileBodySchema = {
+  type: 'object',
+  required: [
+    'avatar',
+    'sex',
+    'birthday',
+    'country',
+    'street',
+    'city',
+    'userId',
+    'memberTypeId',
+  ],
+  properties: {
+    avatar: { type: 'string' },
+    sex: { type: 'string' },
+    birthday: { type: 'number' },
+    country: { type: 'string' },
+    street: { type: 'string' },
+    city: { type: 'string' },
+    userId: { type: 'string', format: 'uuid' },
+    memberTypeId: {
+      type: 'string',
+    },
+  },
+  additionalProperties: false,
+} as const;
+
+const CreateProfileInputType = new GraphQLInputObjectType({
+  name: 'CreateProfileInput',
+  fields: {
+    avatar: { type: new GraphQLNonNull(GraphQLString) },
+    sex: { type: new GraphQLNonNull(GraphQLString) },
+    birthday: { type: new GraphQLNonNull(GraphQLInt) },
+    country: { type: new GraphQLNonNull(GraphQLString) },
+    street: { type: new GraphQLNonNull(GraphQLString) },
+    city: { type: new GraphQLNonNull(GraphQLString) },
+    userId: { type: new GraphQLNonNull(GraphQLID) },
+    memberTypeId: { type: new GraphQLNonNull(GraphQLID) },
+  },
+  description: 'Profile input type',
+});
+
+const UpdateProfileInputType = new GraphQLInputObjectType({
+  name: 'UpdateProfileInput',
+  fields: {
+    avatar: { type: GraphQLString },
+    sex: { type: GraphQLString },
+    birthday: { type: GraphQLInt },
+    country: { type: GraphQLString },
+    street: { type: GraphQLString },
+    city: { type: GraphQLString },
+    userId: { type: GraphQLID },
+    memberTypeId: { type: GraphQLID },
+  },
+  description: 'Profile input type',
+});
+
+const CreatePostInputType = new GraphQLInputObjectType({
+  name: 'CreatePostInput',
+  fields: {
+    title: { type: new GraphQLNonNull(GraphQLString) },
+    content: { type: new GraphQLNonNull(GraphQLString) },
+    userId: { type: new GraphQLNonNull(GraphQLID) },
+  },
+  description: 'Post input type',
+});
+
+const UpdatePostInputType = new GraphQLInputObjectType({
+  name: 'UpdatePostInput',
+  fields: {
+    title: { type: GraphQLString },
+    content: { type: GraphQLString },
+    userId: { type: GraphQLID },
+  },
+  description: 'Post input type',
+});
+
+const UpdateMemberTypeInputType = new GraphQLInputObjectType({
+  name: 'UpdateMemberTypeInput',
+  fields: {
+    discount: { type: GraphQLInt },
+    monthPostsLimit: { type: GraphQLInt },
+  },
+  description: 'MemberType input type',
+});
+
 const mutation = new GraphQLObjectType({
   name: 'Mutation',
   fields: {
@@ -266,6 +352,75 @@ const mutation = new GraphQLObjectType({
           throw new Error('User not found');
         }
         return await db.users.change(id, input);
+      },
+    },
+    createProfile: {
+      type: ProfileType,
+      args: {
+        input: { type: new GraphQLNonNull(CreateProfileInputType) },
+      },
+      resolve: async (parent, { input }, db: DB) => {
+        return await db.profiles.create(input);
+      },
+    },
+    updateProfile: {
+      type: ProfileType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLID) },
+        input: { type: new GraphQLNonNull(UpdateProfileInputType) },
+      },
+      resolve: async (parent, { id, input }, db: DB) => {
+        const profile = await db.profiles.findOne({
+          key: 'id',
+          equals: id,
+        });
+        if (!profile) {
+          throw new Error('Profile not found');
+        }
+        return await db.profiles.change(id, input);
+      },
+    },
+    createPost: {
+      type: PostType,
+      args: {
+        input: { type: new GraphQLNonNull(CreatePostInputType) },
+      },
+      resolve: async (parent, { input }, db: DB) => {
+        return await db.posts.create(input);
+      },
+    },
+    updatePost: {
+      type: PostType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLID) },
+        input: { type: new GraphQLNonNull(UpdatePostInputType) },
+      },
+      resolve: async (parent, { id, input }, db: DB) => {
+        const post = await db.posts.findOne({
+          key: 'id',
+          equals: id,
+        });
+        if (!post) {
+          throw new Error('Post not found');
+        }
+        return await db.posts.change(id, input);
+      },
+    },
+    updateMemberType: {
+      type: MemberType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLID) },
+        input: { type: new GraphQLNonNull(UpdateMemberTypeInputType) },
+      },
+      resolve: async (parent, { id, input }, db: DB) => {
+        const memberType = await db.memberTypes.findOne({
+          key: 'id',
+          equals: id,
+        });
+        if (!memberType) {
+          throw new Error('MemberType not found');
+        }
+        return await db.memberTypes.change(id, input);
       },
     },
   },
