@@ -1,17 +1,20 @@
-import { FastifyPluginAsyncJsonSchemaToTs } from "@fastify/type-provider-json-schema-to-ts";
-import { idParamSchema, idParamSchemaWithoutUUID } from "../../utils/reusedSchemas";
-import { createPostBodySchema, changePostBodySchema } from "./schema";
-import type { PostEntity } from "../../utils/DB/entities/DBPosts";
+import { FastifyPluginAsyncJsonSchemaToTs } from '@fastify/type-provider-json-schema-to-ts';
+import {
+  idParamSchema,
+  idParamSchemaWithoutUUID,
+} from '../../utils/reusedSchemas';
+import { createPostBodySchema, changePostBodySchema } from './schema';
+import type { PostEntity } from '../../utils/DB/entities/DBPosts';
 
 const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   fastify
 ): Promise<void> => {
-  fastify.get("/", async function (request, reply): Promise<PostEntity[]> {
+  fastify.get('/', async function (request, reply): Promise<PostEntity[]> {
     return await fastify.db.posts.findMany();
   });
 
   fastify.get(
-    "/:id",
+    '/:id',
     {
       schema: {
         params: idParamSchemaWithoutUUID,
@@ -19,7 +22,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     },
     async function (request, reply): Promise<PostEntity> {
       const post = await fastify.db.posts.findOne({
-        key: "id",
+        key: 'id',
         equals: request.params.id,
       });
       if (!post) {
@@ -30,7 +33,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   );
 
   fastify.post(
-    "/",
+    '/',
     {
       schema: {
         body: createPostBodySchema,
@@ -42,7 +45,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   );
 
   fastify.delete(
-    "/:id",
+    '/:id',
     {
       schema: {
         params: idParamSchema,
@@ -50,7 +53,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     },
     async function (request, reply): Promise<PostEntity> {
       const post = await fastify.db.posts.findOne({
-        key: "id",
+        key: 'id',
         equals: request.params.id,
       });
       if (!post) {
@@ -61,7 +64,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   );
 
   fastify.patch(
-    "/:id",
+    '/:id',
     {
       schema: {
         body: changePostBodySchema,
@@ -70,7 +73,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     },
     async function (request, reply): Promise<PostEntity> {
       const post = await fastify.db.posts.findOne({
-        key: "id",
+        key: 'id',
         equals: request.params.id,
       });
       if (!post) {

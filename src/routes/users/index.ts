@@ -1,24 +1,24 @@
-import { FastifyPluginAsyncJsonSchemaToTs } from "@fastify/type-provider-json-schema-to-ts";
+import { FastifyPluginAsyncJsonSchemaToTs } from '@fastify/type-provider-json-schema-to-ts';
 import {
   idParamSchema,
   idParamSchemaWithoutUUID,
-} from "../../utils/reusedSchemas";
+} from '../../utils/reusedSchemas';
 import {
   createUserBodySchema,
   changeUserBodySchema,
   subscribeBodySchema,
-} from "./schemas";
-import type { UserEntity } from "../../utils/DB/entities/DBUsers";
+} from './schemas';
+import type { UserEntity } from '../../utils/DB/entities/DBUsers';
 
 const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   fastify
 ): Promise<void> => {
-  fastify.get("/", async function (request, reply): Promise<UserEntity[]> {
+  fastify.get('/', async function (request, reply): Promise<UserEntity[]> {
     return await fastify.db.users.findMany();
   });
 
   fastify.get(
-    "/:id",
+    '/:id',
     {
       schema: {
         params: idParamSchemaWithoutUUID,
@@ -26,18 +26,18 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     },
     async function (request, reply): Promise<UserEntity> {
       const user = await fastify.db.users.findOne({
-        key: "id",
+        key: 'id',
         equals: request.params.id,
       });
       if (!user) {
-        throw fastify.httpErrors.notFound("User not Found");
+        throw fastify.httpErrors.notFound('User not Found');
       }
       return user;
     }
   );
 
   fastify.post(
-    "/",
+    '/',
     {
       schema: {
         body: createUserBodySchema,
@@ -49,7 +49,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   );
 
   fastify.delete(
-    "/:id",
+    '/:id',
     {
       schema: {
         params: idParamSchema,
@@ -57,21 +57,21 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     },
     async function (request, reply): Promise<UserEntity> {
       const user = await fastify.db.users.findOne({
-        key: "id",
+        key: 'id',
         equals: request.params.id,
       });
       if (!user) {
-        throw fastify.httpErrors.notFound("User not Found");
+        throw fastify.httpErrors.notFound('User not Found');
       }
       const posts = await fastify.db.posts.findMany({
-        key: "userId",
+        key: 'userId',
         equals: user.id,
       });
       posts.forEach(async ({ id }) => {
         await fastify.db.posts.delete(id);
       });
       const profile = await fastify.db.profiles.findOne({
-        key: "userId",
+        key: 'userId',
         equals: user.id,
       });
       if (profile) {
@@ -97,7 +97,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   );
 
   fastify.post(
-    "/:id/subscribeTo",
+    '/:id/subscribeTo',
     {
       schema: {
         body: subscribeBodySchema,
@@ -106,18 +106,18 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     },
     async function (request, reply): Promise<UserEntity> {
       const user = await fastify.db.users.findOne({
-        key: "id",
+        key: 'id',
         equals: request.body.userId,
       });
       if (!user) {
-        throw fastify.httpErrors.notFound("User not Found");
+        throw fastify.httpErrors.notFound('User not Found');
       }
       const userSubscribedToUserIds = user.subscribedToUserIds;
 
       if (!userSubscribedToUserIds.includes(request.params.id)) {
         userSubscribedToUserIds.push(request.params.id);
       } else {
-        throw fastify.httpErrors.badRequest("User already subscribed");
+        throw fastify.httpErrors.badRequest('User already subscribed');
       }
       return await fastify.db.users.change(request.body.userId, {
         subscribedToUserIds: userSubscribedToUserIds,
@@ -126,7 +126,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   );
 
   fastify.post(
-    "/:id/unsubscribeFrom",
+    '/:id/unsubscribeFrom',
     {
       schema: {
         body: subscribeBodySchema,
@@ -135,11 +135,11 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     },
     async function (request, reply): Promise<UserEntity> {
       const user = await fastify.db.users.findOne({
-        key: "id",
+        key: 'id',
         equals: request.body.userId,
       });
       if (!user) {
-        throw fastify.httpErrors.notFound("User not Found");
+        throw fastify.httpErrors.notFound('User not Found');
       }
       const userSubscribedToUserIds = user.subscribedToUserIds;
 
@@ -149,7 +149,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
           1
         );
       } else {
-        throw fastify.httpErrors.badRequest("User not subscribed");
+        throw fastify.httpErrors.badRequest('User not subscribed');
       }
       return await fastify.db.users.change(request.body.userId, {
         subscribedToUserIds: userSubscribedToUserIds,
@@ -158,7 +158,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
   );
 
   fastify.patch(
-    "/:id",
+    '/:id',
     {
       schema: {
         body: changeUserBodySchema,
@@ -167,11 +167,11 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
     },
     async function (request, reply): Promise<UserEntity> {
       const user = await fastify.db.users.findOne({
-        key: "id",
+        key: 'id',
         equals: request.params.id,
       });
       if (!user) {
-        throw fastify.httpErrors.notFound("User not Found");
+        throw fastify.httpErrors.notFound('User not Found');
       }
       return await fastify.db.users.change(request.params.id, request.body);
     }
