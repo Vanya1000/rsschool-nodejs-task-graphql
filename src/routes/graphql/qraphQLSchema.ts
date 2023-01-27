@@ -7,6 +7,8 @@ import {
   GraphQLList,
   GraphQLInt,
   GraphQLSchema,
+  GraphQLInputObjectType,
+  GraphQLNonNull,
 } from 'graphql';
 
 const PostType = new GraphQLObjectType({
@@ -52,6 +54,25 @@ const ProfileType = new GraphQLObjectType({
   },
 });
 
+/* const UserSubscribedTo = new GraphQLObjectType({
+  name: 'UserSubscribedTo',
+  fields: {
+    profiles: {
+      type: new GraphQLList(ProfileType),
+      resolve: (parent, args, db: DB) => {
+        const userSubscribedTo = parent.subscribedToUserIds;
+        const promiseProfiles = userSubscribedTo.map((id: string) => {
+          return db.profiles.findOne({
+            key: 'userId',
+            equals: id,
+          });
+        });
+        return Promise.all(promiseProfiles);
+      },
+    },
+  },
+}); */
+
 const UserType = new GraphQLObjectType({
   name: 'User',
   fields: {
@@ -78,10 +99,29 @@ const UserType = new GraphQLObjectType({
         });
       },
     },
+    userSubscribedTo: {
+      type: new GraphQLList(ProfileType),
+      resolve: (parent, args, db: DB) => {
+        const userSubscribedTo = parent.subscribedToUserIds;
+        const promiseProfiles = userSubscribedTo.map((id: string) => {
+          return db.profiles.findOne({
+            key: 'userId',
+            equals: id,
+          });
+        });
+        return Promise.all(promiseProfiles);
+      },
+    },
+    /* subscribedToUser: {
+      type: new GraphQLList(PostType),
+      resolve: (parent, args, db: DB) => {
+        const userSubscribedToMe = db.users.findMany();
+      }
+    } */
   },
 });
 
-const QueryType = new GraphQLObjectType({
+const query = new GraphQLObjectType({
   name: 'Query',
   fields: {
     user: {
@@ -178,27 +218,62 @@ const QueryType = new GraphQLObjectType({
     },
   },
 });
-/* const MutationType = new GraphQLObjectType({
-  name: "Mutation",
+
+const CreateUserInputType = new GraphQLInputObjectType({
+  name: 'CreateUserInput',
+  fields: {
+    firstName: { type: new GraphQLNonNull(GraphQLString) },
+    lastName: { type: new GraphQLNonNull(GraphQLString) },
+    email: { type: new GraphQLNonNull(GraphQLString) },
+  },
+  description: 'User input type',
+});
+
+const UpdateUserInputType = new GraphQLInputObjectType({
+  name: 'UpdateUserInput',
+  fields: {
+    firstName: { type: GraphQLString },
+    lastName: { type: GraphQLString },
+    email: { type: GraphQLString },
+  },
+  description: 'User input type',
+});
+
+const mutation = new GraphQLObjectType({
+  name: 'Mutation',
   fields: {
     createUser: {
       type: UserType,
       args: {
-        firstName: { type: GraphQLString },
-        lastName: { type: GraphQLString },
-        email: { type: GraphQLString },
+        input: { type: new GraphQLNonNull(CreateUserInputType) },
       },
-      resolve: async (parent, args, db) => {
-        const user = await db.users.create(args);
-        return user;
+      resolve: async (parent, { input }, db: DB) => {
+        return await db.users.create(input);
+      },
+    },
+    updateUser: {
+      type: UserType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLID) },
+        input: { type: new GraphQLNonNull(UpdateUserInputType) },
+      },
+      resolve: async (parent, { id, input }, db: DB) => {
+        const user = await db.users.findOne({
+          key: 'id',
+          equals: id,
+        });
+        if (!user) {
+          throw new Error('User not found');
+        }
+        return await db.users.change(id, input);
       },
     },
   },
-}); */
+});
 
 const schema: GraphQLSchema = new GraphQLSchema({
-  query: QueryType,
-  // mutation: MutationType,
+  query,
+  mutation,
   types: [UserType],
 });
 

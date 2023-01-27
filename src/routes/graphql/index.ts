@@ -1,4 +1,3 @@
-// //@ts-nocheck
 import { FastifyPluginAsyncJsonSchemaToTs } from '@fastify/type-provider-json-schema-to-ts';
 import { graphqlBodySchema } from './schema';
 import { graphql } from 'graphql';

@@ -108,7 +108,7 @@ query GetUsersWithTheirPostsProfilesMemberTypes {
   }
 }
 
-2.4. Get user by id with his posts, profile, memberType.
+2.4. Get user by id with his posts, profile, memberType:
 
 query GetUserbyIdWithHisPostsProfileMemberType ($userId: ID!) {
   user (id: $userId) {
@@ -144,4 +144,68 @@ query GetUserbyIdWithHisPostsProfileMemberType ($userId: ID!) {
 
 {
   "userId": "38db537f-c876-4eec-9207-1b1e403c6893"
+}
+
+2.5. Get users with their userSubscribedTo, profile:
+
+query GetUsersWithTheirUserSubscribedToProfile {
+  users {
+    id
+    firstName
+    lastName
+    email
+    subscribedToUserIds
+    userSubscribedTo {
+      id
+      avatar
+      sex
+      birthday
+      country
+      street
+      city
+      userId
+      memberTypeId
+    }
+  }
+}
+
+Create gql requests:
+
+2.8. Create user:
+
+mutation CreateUser ($input: CreateUserInput!) {
+  createUser (input: $input) {
+    id
+    firstName
+    lastName
+  }
+}
+
+{
+  "input": {
+    "firstName": "John",
+    "lastName": "Someone",
+    "email": "johnsomeone@gmail.com"
+  }
+}
+
+Update gql requests:
+
+2.12. Update user.
+
+mutation UpdateUser ($id: ID!, $input: UpdateUserInput!) {
+  updateUser (id: $id input: $input) {
+    id
+    firstName
+    lastName
+    email
+  }
+}
+
+{
+  "id": "d4ac75e5-84a2-4eab-b30e-1a6f2c8b967f",
+  "input": {
+    "firstName": "new Name",
+    "lastName": " new Someone"
+  }
 }
