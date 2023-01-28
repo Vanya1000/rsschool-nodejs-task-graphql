@@ -326,7 +326,34 @@ mutation UpdateMemberType ($id: ID!, $input: UpdateMemberTypeInput!) {
   }
 }
 
-2.16. Subscribe to; unsubscribe from.
+2.16. Subscribe to:
+mutation SubscribeTo ($id: ID!, $input: SubccribeToInput!) {
+  subscribeTo (id: $id, input: $input) {
+    subscribedToUserIds
+  }
+}
+
+{ 
+  "id": "72ce4e54-3a6b-4151-87a2-fc70735b5e50",
+  "input": {
+    "userId": "f530f5d8-0362-40bf-b35a-dae87495a02f"
+  }
+}
+
+Unsubscribe from: 
+
+mutation UnsubscribeTo ($id: ID!, $input: SubccribeToInput!) {
+  unsubscribeTo (id: $id, input: $input) {
+    subscribedToUserIds
+  }
+}
+
+{ 
+  "id": "936463ef-387d-4095-9a52-e1fcb3c68ff5",
+  "input": {
+    "userId": "d57c6e21-1c17-44f9-a599-6c57a0dd9d4e"
+  }
+}
 
 2.17. InputObjectType for DTOs.
 Fully completed!

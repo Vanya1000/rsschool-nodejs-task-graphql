@@ -54,6 +54,20 @@ const ProfileType = new GraphQLObjectType({
   },
 });
 
+/* {
+  "subscribeTo": {
+    "id": "40b2df67-8e3a-4963-a279-364b48f0e13a"
+  } */
+
+/* const subscribeReturnType = new GraphQLObjectType({
+  name: 'SubscribeReturnType',
+  fields: {
+    subscribeTo: {
+      type: ProfileType,
+    },
+  },
+}); */
+
 /* const UserSubscribedTo = new GraphQLObjectType({
   name: 'UserSubscribedTo',
   fields: {
@@ -325,6 +339,14 @@ const UpdateMemberTypeInputType = new GraphQLInputObjectType({
   description: 'MemberType input type',
 });
 
+const SubccribeInputType = new GraphQLInputObjectType({
+  name: 'SubccribeToInput',
+  fields: {
+    userId: { type: new GraphQLNonNull(GraphQLID) },
+  },
+  description: 'SubccribeTo input type',
+});
+
 const mutation = new GraphQLObjectType({
   name: 'Mutation',
   fields: {
@@ -422,6 +444,65 @@ const mutation = new GraphQLObjectType({
         }
         return await db.memberTypes.change(id, input);
       },
+    },
+    subscribeTo: {
+      type: UserType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLID) },
+        input: { type: new GraphQLNonNull(SubccribeInputType) },
+      },
+      resolve: async (parent, { id, input }, db: DB) => {
+        const user = await db.users.findOne({
+          key: 'id',
+          equals: id,
+        });
+        if (!user) {
+          throw new Error('User not found');
+        }
+        const userSubscribedToUserIds = user.subscribedToUserIds;
+
+        if (!userSubscribedToUserIds.includes(input.userId)) {
+          userSubscribedToUserIds.push(input.userId);
+        } else {
+          throw new Error('User already subscribed');
+        }
+
+        const returned = await db.users.change(id, {
+          subscribedToUserIds: userSubscribedToUserIds,
+        });
+        return returned;
+      },
+    },
+    unsubscribeTo: {
+      type: UserType,
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLID) },
+        input: { type: new GraphQLNonNull(SubccribeInputType) },
+      },
+      resolve: async (parent, { id, input }, db: DB) => {
+        const user = await db.users.findOne({
+          key: 'id',
+          equals: id,
+        });
+        if (!user) {
+          throw new Error('User not found');
+        }
+        const userSubscribedToUserIds = user.subscribedToUserIds;
+
+        if (userSubscribedToUserIds.includes(input.userId)) {
+          userSubscribedToUserIds.splice(
+            userSubscribedToUserIds.indexOf(input.userId),
+            1
+          );
+        } else {
+          throw new Error('User not subscribed');
+        }
+
+        const returned = await db.users.change(id, {
+          subscribedToUserIds: userSubscribedToUserIds,
+        });
+        return returned;
+      }
     },
   },
 });
