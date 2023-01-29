@@ -85,11 +85,13 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         variableValues,
         contextValue: {
           db: fastify.db,
-          postLoader,
-          profileLoader,
-          memberTypeLoader,
-          userLoader,
-          userSubscribedToLoader
+          loaders: {
+            postLoader,
+            profileLoader,
+            memberTypeLoader,
+            userLoader,
+            userSubscribedToLoader,
+          },
         },
       });
     }

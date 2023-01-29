@@ -148,6 +148,7 @@ query GetUserbyIdWithHisPostsProfileMemberType ($userId: ID!) {
 
 2.5. Get users with their userSubscribedTo, profile:
 
+
 query UserSubscribedToProfile {
   users {
      userSubscribedTo {
@@ -232,6 +233,17 @@ query UserSubscribedToProfile {
 Create gql requests:
 
 2.8. Create user:
+
+{
+  "query": "mutation CreateUser ($input: CreateUserInput!) { createUser (input: $input) { id firstName lastName } }",
+  "variables": {
+    "input": {
+      "firstName": "John",
+      "lastName": "Someone",
+      "email": "johnsomeone@gmail.com"
+    }
+  }
+}
 
 mutation CreateUser ($input: CreateUserInput!) {
   createUser (input: $input) {

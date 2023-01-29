@@ -1,5 +1,4 @@
-// // @ts-nocheck
-import DB from './../../utils/DB/DB';
+import DB from '../../utils/DB/DB';
 
 import {
   GraphQLObjectType,
@@ -14,11 +13,9 @@ import {
 
 type ContextType = {
   db: DB;
-  postLoader: any;
-  profileLoader: any;
-  memberTypeLoader: any;
-  userLoader: any;
-  userSubscribedToLoader: any;
+  loaders: {
+    [key: string]: any;
+  };
 };
 
 const PostType = new GraphQLObjectType({
@@ -55,11 +52,7 @@ const ProfileType = new GraphQLObjectType({
     memberType: {
       type: MemberType,
       resolve: (parent, args, context: ContextType) => {
-        /* return context.db.memberTypes.findOne({
-          key: 'id',
-          equals: parent.memberTypeId,
-        }); */
-        return context.memberTypeLoader.load(parent.memberTypeId);
+        return context.loaders.memberTypeLoader.load(parent.memberTypeId);
       },
     },
   },
@@ -86,22 +79,13 @@ const UserType: any = new GraphQLObjectType({
     posts: {
       type: new GraphQLList(PostType),
       resolve: (parent, args, context: ContextType) => {
-        // return context.dataloader.loadOne(parent.id, 'profile');
-        /* return context.db.posts.findMany({
-          key: 'userId',
-          equals: parent.id,
-        }); */
-        return context.postLoader.load(parent.id);
+        return context.loaders.postLoader.load(parent.id);
       },
     },
     profile: {
       type: ProfileType,
       resolve: (parent, args, context: ContextType) => {
-        /* return context.db.profiles.findOne({
-          key: 'userId',
-          equals: parent.id,
-        }); */
-        return context.profileLoader.load(parent.id, 'profile');
+        return context.loaders.profileLoader.load(parent.id, 'profile');
       },
     },
     subscribedToUserIds: { type: new GraphQLList(GraphQLID) },
@@ -109,31 +93,13 @@ const UserType: any = new GraphQLObjectType({
       type: new GraphQLList(UserType),
       resolve: async (parent, args, context: ContextType) => {
         const userSubscribedToIds = parent.subscribedToUserIds;
-        /* const users = await context.db.users.findMany({
-          key: 'id',
-          equalsAnyOf: userSubscribedToIdS,
-        });
-        return users; */
-        /* const idPromise = userSubscribedToIdS.map((id: string) => {
-          return context.userLoader.load(id);
-        });
-        await Promise.all(idPromise);
-
-        return idPromise; */
-        return await context.userLoader.loadMany(userSubscribedToIds);
-
-        // return context.userLoader.load(userSubscribedToIdS);
+        return await context.loaders.userLoader.loadMany(userSubscribedToIds);
       },
     },
     userSubscribedTo: {
       type: new GraphQLList(UserType),
       resolve: async (parent, args, context: ContextType) => {
-        /* const users = await context.db.users.findMany({
-          key: 'subscribedToUserIds',
-          inArray: parent.id,
-        });
-        return users; */
-        return await context.userSubscribedToLoader.load(parent.id);
+        return await context.loaders.userSubscribedToLoader.load(parent.id);
       },
     },
   }),
@@ -148,11 +114,7 @@ const query = new GraphQLObjectType({
         id: { type: GraphQLID },
       },
       resolve: async (parent, args, context: ContextType) => {
-        /* const user = await context.db.users.findOne({
-          key: 'id',
-          equals: args.id,
-        }); */
-        const user = await context.userLoader.load(args.id);
+        const user = await context.loaders.userLoader.load(args.id);
         if (!user) {
           throw new Error('User not found');
         }
@@ -515,7 +477,7 @@ const mutation = new GraphQLObjectType({
 const schema: GraphQLSchema = new GraphQLSchema({
   query,
   mutation,
-  types: [UserType],
+  types: [UserType, ProfileType, PostType, MemberType],
 });
 
 export default schema;
