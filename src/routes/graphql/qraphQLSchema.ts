@@ -11,6 +11,11 @@ import {
   GraphQLNonNull,
 } from 'graphql';
 
+type ContextType = {
+  db: DB;
+  postLoader: any;
+};
+
 const PostType = new GraphQLObjectType({
   name: 'Post',
   fields: {
@@ -44,8 +49,8 @@ const ProfileType = new GraphQLObjectType({
     memberTypeId: { type: GraphQLID },
     memberType: {
       type: MemberType,
-      resolve: (parent, args, db: DB) => {
-        return db.memberTypes.findOne({
+      resolve: (parent, args, context: ContextType) => {
+        return context.db.memberTypes.findOne({
           key: 'id',
           equals: parent.memberTypeId,
         });
@@ -54,86 +59,70 @@ const ProfileType = new GraphQLObjectType({
   },
 });
 
-/* {
-  "subscribeTo": {
-    "id": "40b2df67-8e3a-4963-a279-364b48f0e13a"
-  } */
-
-/* const subscribeReturnType = new GraphQLObjectType({
-  name: 'SubscribeReturnType',
-  fields: {
-    subscribeTo: {
-      type: ProfileType,
-    },
-  },
-}); */
-
-/* const UserSubscribedTo = new GraphQLObjectType({
-  name: 'UserSubscribedTo',
-  fields: {
-    profiles: {
-      type: new GraphQLList(ProfileType),
-      resolve: (parent, args, db: DB) => {
-        const userSubscribedTo = parent.subscribedToUserIds;
-        const promiseProfiles = userSubscribedTo.map((id: string) => {
-          return db.profiles.findOne({
-            key: 'userId',
-            equals: id,
-          });
-        });
-        return Promise.all(promiseProfiles);
-      },
-    },
-  },
-}); */
-
-const UserType = new GraphQLObjectType({
-  name: 'User',
+const UserMutationResponse = new GraphQLObjectType({
+  name: 'UserMutationResponse',
   fields: {
     id: { type: GraphQLID },
     firstName: { type: GraphQLString },
     lastName: { type: GraphQLString },
     email: { type: GraphQLString },
     subscribedToUserIds: { type: new GraphQLList(GraphQLID) },
+  },
+});
+
+const UserType: any = new GraphQLObjectType({
+  name: 'User',
+  fields: () => ({
+    id: { type: GraphQLID },
+    firstName: { type: GraphQLString },
+    lastName: { type: GraphQLString },
+    email: { type: GraphQLString },
     posts: {
       type: new GraphQLList(PostType),
-      resolve: (parent, args, db: DB) => {
-        return db.posts.findMany({
+      resolve: (parent, args, context: ContextType) => {
+        // return context.dataloader.loadOne(parent.id, 'profile');
+        /* return context.db.posts.findMany({
           key: 'userId',
           equals: parent.id,
-        });
+        }); */
+        // use postLoader in context
+        return context.postLoader.load(parent.id);
       },
     },
     profile: {
       type: ProfileType,
-      resolve: (parent, args, db: DB) => {
-        return db.profiles.findOne({
+      resolve: (parent, args, context: ContextType) => {
+        return context.db.profiles.findOne({
           key: 'userId',
           equals: parent.id,
         });
       },
     },
-    userSubscribedTo: {
-      type: new GraphQLList(ProfileType),
-      resolve: (parent, args, db: DB) => {
-        const userSubscribedTo = parent.subscribedToUserIds;
-        const promiseProfiles = userSubscribedTo.map((id: string) => {
-          return db.profiles.findOne({
-            key: 'userId',
-            equals: id,
-          });
+    subscribedToUserIds: { type: new GraphQLList(GraphQLID) },
+    subscribedToUser: {
+      type: new GraphQLList(UserType),
+      resolve: async (parent, args, context: ContextType) => {
+        const userSubscribedToIdS = parent.subscribedToUserIds;
+        const users = await context.db.users.findMany({
+          key: 'id',
+          equalsAnyOf: userSubscribedToIdS,
         });
-        return Promise.all(promiseProfiles);
+        return users;
       },
     },
-    /* subscribedToUser: {
-      type: new GraphQLList(PostType),
-      resolve: (parent, args, db: DB) => {
-        const userSubscribedToMe = db.users.findMany();
-      }
-    } */
-  },
+    userSubscribedTo: {
+      type: new GraphQLList(UserType),
+      resolve: async (parent, args, context: ContextType) => {
+        const users = await context.db.users.findMany({
+          key: 'subscribedToUserIds',
+          inArray: parent.id,
+        });
+        return users;
+      },
+    },
+  }),
 });
+
 
 const query = new GraphQLObjectType({
   name: 'Query',
@@ -143,8 +132,8 @@ const query = new GraphQLObjectType({
       args: {
         id: { type: GraphQLID },
       },
-      resolve: async (parent, args, db: DB) => {
-        const user = await db.users.findOne({
+      resolve: async (parent, args, context: ContextType) => {
+        const user = await context.db.users.findOne({
           key: 'id',
           equals: args.id,
         });
@@ -156,8 +145,8 @@ const query = new GraphQLObjectType({
     },
     users: {
       type: new GraphQLList(UserType),
-      resolve: async (parent, args, db: DB) => {
-        const users = await db.users.findMany();
+      resolve: async (parent, args, context: ContextType) => {
+        const users = await context.db.users.findMany();
         return users;
       },
     },
@@ -166,8 +155,8 @@ const query = new GraphQLObjectType({
       args: {
         id: { type: GraphQLID },
       },
-      resolve: async (parent, args, db: DB) => {
-        const profile = await db.profiles.findOne({
+      resolve: async (parent, args, context: ContextType) => {
+        const profile = await context.db.profiles.findOne({
           key: 'id',
           equals: args.id,
         });
@@ -179,8 +168,8 @@ const query = new GraphQLObjectType({
     },
     profiles: {
       type: new GraphQLList(ProfileType),
-      resolve: async (parent, args, db: DB) => {
-        const profiles = await db.profiles.findMany();
+      resolve: async (parent, args, context: ContextType) => {
+        const profiles = await context.db.profiles.findMany();
         return profiles;
       },
     },
@@ -189,8 +178,8 @@ const query = new GraphQLObjectType({
       args: {
         id: { type: GraphQLID },
       },
-      resolve: async (parent, args, db: DB) => {
-        const post = await db.posts.findOne({
+      resolve: async (parent, args, context: ContextType) => {
+        const post = await context.db.posts.findOne({
           key: 'id',
           equals: args.id,
         });
@@ -202,8 +191,8 @@ const query = new GraphQLObjectType({
     },
     posts: {
       type: new GraphQLList(PostType),
-      resolve: async (parent, args, db: DB) => {
-        const posts = await db.posts.findMany();
+      resolve: async (parent, args, context: ContextType) => {
+        const posts = await context.db.posts.findMany();
         return posts;
       },
     },
@@ -212,8 +201,8 @@ const query = new GraphQLObjectType({
       args: {
         id: { type: GraphQLID },
       },
-      resolve: async (parent, args, db: DB) => {
-        const memberType = await db.memberTypes.findOne({
+      resolve: async (parent, args, context: ContextType) => {
+        const memberType = await context.db.memberTypes.findOne({
           key: 'id',
           equals: args.id,
         });
@@ -225,8 +214,8 @@ const query = new GraphQLObjectType({
     },
     memberTypes: {
       type: new GraphQLList(MemberType),
-      resolve: async (parent, args, db: DB) => {
-        const memberTypes = await db.memberTypes.findMany();
+      resolve: async (parent, args, context: ContextType) => {
+        const memberTypes = await context.db.memberTypes.findMany();
         return memberTypes;
       },
     },
@@ -351,29 +340,29 @@ const mutation = new GraphQLObjectType({
   name: 'Mutation',
   fields: {
     createUser: {
-      type: UserType,
+      type: UserMutationResponse,
       args: {
         input: { type: new GraphQLNonNull(CreateUserInputType) },
       },
-      resolve: async (parent, { input }, db: DB) => {
-        return await db.users.create(input);
+      resolve: async (parent, { input }, context: ContextType) => {
+        return await context.db.users.create(input);
       },
     },
     updateUser: {
-      type: UserType,
+      type: UserMutationResponse,
       args: {
         id: { type: new GraphQLNonNull(GraphQLID) },
         input: { type: new GraphQLNonNull(UpdateUserInputType) },
       },
-      resolve: async (parent, { id, input }, db: DB) => {
-        const user = await db.users.findOne({
+      resolve: async (parent, { id, input }, context: ContextType) => {
+        const user = await context.db.users.findOne({
           key: 'id',
           equals: id,
         });
         if (!user) {
           throw new Error('User not found');
         }
-        return await db.users.change(id, input);
+        return await context.db.users.change(id, input);
       },
     },
     createProfile: {
@@ -381,8 +370,8 @@ const mutation = new GraphQLObjectType({
       args: {
         input: { type: new GraphQLNonNull(CreateProfileInputType) },
       },
-      resolve: async (parent, { input }, db: DB) => {
-        return await db.profiles.create(input);
+      resolve: async (parent, { input }, context: ContextType) => {
+        return await context.db.profiles.create(input);
       },
     },
     updateProfile: {
@@ -391,15 +380,15 @@ const mutation = new GraphQLObjectType({
         id: { type: new GraphQLNonNull(GraphQLID) },
         input: { type: new GraphQLNonNull(UpdateProfileInputType) },
       },
-      resolve: async (parent, { id, input }, db: DB) => {
-        const profile = await db.profiles.findOne({
+      resolve: async (parent, { id, input }, context: ContextType) => {
+        const profile = await context.db.profiles.findOne({
           key: 'id',
           equals: id,
         });
         if (!profile) {
           throw new Error('Profile not found');
         }
-        return await db.profiles.change(id, input);
+        return await context.db.profiles.change(id, input);
       },
     },
     createPost: {
@@ -407,8 +396,8 @@ const mutation = new GraphQLObjectType({
       args: {
         input: { type: new GraphQLNonNull(CreatePostInputType) },
       },
-      resolve: async (parent, { input }, db: DB) => {
-        return await db.posts.create(input);
+      resolve: async (parent, { input }, context: ContextType) => {
+        return await context.db.posts.create(input);
       },
     },
     updatePost: {
@@ -417,15 +406,15 @@ const mutation = new GraphQLObjectType({
         id: { type: new GraphQLNonNull(GraphQLID) },
         input: { type: new GraphQLNonNull(UpdatePostInputType) },
       },
-      resolve: async (parent, { id, input }, db: DB) => {
-        const post = await db.posts.findOne({
+      resolve: async (parent, { id, input }, context: ContextType) => {
+        const post = await context.db.posts.findOne({
           key: 'id',
           equals: id,
         });
         if (!post) {
           throw new Error('Post not found');
         }
-        return await db.posts.change(id, input);
+        return await context.db.posts.change(id, input);
       },
     },
     updateMemberType: {
@@ -434,15 +423,15 @@ const mutation = new GraphQLObjectType({
         id: { type: new GraphQLNonNull(GraphQLID) },
         input: { type: new GraphQLNonNull(UpdateMemberTypeInputType) },
       },
-      resolve: async (parent, { id, input }, db: DB) => {
-        const memberType = await db.memberTypes.findOne({
+      resolve: async (parent, { id, input }, context: ContextType) => {
+        const memberType = await context.db.memberTypes.findOne({
           key: 'id',
           equals: id,
         });
         if (!memberType) {
           throw new Error('MemberType not found');
         }
-        return await db.memberTypes.change(id, input);
+        return await context.db.memberTypes.change(id, input);
       },
     },
     subscribeTo: {
@@ -451,23 +440,23 @@ const mutation = new GraphQLObjectType({
         id: { type: new GraphQLNonNull(GraphQLID) },
         input: { type: new GraphQLNonNull(SubccribeInputType) },
       },
-      resolve: async (parent, { id, input }, db: DB) => {
-        const user = await db.users.findOne({
+      resolve: async (parent, { id, input }, context: ContextType) => {
+        const user = await context.db.users.findOne({
           key: 'id',
-          equals: id,
+          equals: input.userId,
         });
         if (!user) {
           throw new Error('User not found');
         }
         const userSubscribedToUserIds = user.subscribedToUserIds;
 
-        if (!userSubscribedToUserIds.includes(input.userId)) {
-          userSubscribedToUserIds.push(input.userId);
+        if (!userSubscribedToUserIds.includes(id)) {
+          userSubscribedToUserIds.push(id);
         } else {
           throw new Error('User already subscribed');
         }
 
-        const returned = await db.users.change(id, {
+        const returned = await context.db.users.change(input.userId, {
           subscribedToUserIds: userSubscribedToUserIds,
         });
         return returned;
@@ -479,30 +468,30 @@ const mutation = new GraphQLObjectType({
         id: { type: new GraphQLNonNull(GraphQLID) },
         input: { type: new GraphQLNonNull(SubccribeInputType) },
       },
-      resolve: async (parent, { id, input }, db: DB) => {
-        const user = await db.users.findOne({
+      resolve: async (parent, { id, input }, context: ContextType) => {
+        const user = await context.db.users.findOne({
           key: 'id',
-          equals: id,
+          equals: input.userId,
         });
         if (!user) {
           throw new Error('User not found');
         }
         const userSubscribedToUserIds = user.subscribedToUserIds;
 
-        if (userSubscribedToUserIds.includes(input.userId)) {
+        if (userSubscribedToUserIds.includes(id)) {
           userSubscribedToUserIds.splice(
-            userSubscribedToUserIds.indexOf(input.userId),
+            userSubscribedToUserIds.indexOf(id),
             1
           );
         } else {
           throw new Error('User not subscribed');
         }
 
-        const returned = await db.users.change(id, {
+        const returned = await context.db.users.change(input.userId, {
           subscribedToUserIds: userSubscribedToUserIds,
         });
         return returned;
-      }
+      },
     },
   },
 });

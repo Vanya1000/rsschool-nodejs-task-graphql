@@ -148,26 +148,86 @@ query GetUserbyIdWithHisPostsProfileMemberType ($userId: ID!) {
 
 2.5. Get users with their userSubscribedTo, profile:
 
-query GetUsersWithTheirUserSubscribedToProfile {
+query UserSubscribedToProfile {
   users {
-    id
-    firstName
-    lastName
-    email
-    subscribedToUserIds
-    userSubscribedTo {
-      id
-      avatar
-      sex
-      birthday
-      country
-      street
-      city
-      userId
-      memberTypeId
+     userSubscribedTo {
+      profile {
+        id
+        avatar
+        sex
+        birthday
+        country
+        street
+        city
+        userId
+        memberTypeId
+      }
     }
   }
 }
+
+
+2.6. Get user by id with his subscribedToUser, posts.
+
+query SubscribedToUserPosts ($id: ID!) {
+  user (id: $id) {
+     subscribedToUser{
+      posts {
+        id
+        title
+        content
+        userId
+      }
+    }
+  }
+}
+
+{
+  "id": "2494b5ff-ca22-469c-8b14-501755f4e191"
+}
+
+2.7. Get users with their userSubscribedTo, subscribedToUser (additionally for each user in userSubscribedTo, subscribedToUser add their userSubscribedTo, subscribedToUser).
+
+query UserSubscribedToProfile {
+  users {
+     userSubscribedTo {
+      id
+      firstName
+      lastName
+      email
+      userSubscribedTo {
+        id
+        firstName
+        lastName
+        email
+        userSubscribedTo {
+          id
+          firstName
+          lastName
+          email
+        }
+      }
+    }
+    subscribedToUser {
+      id
+      firstName
+      lastName
+      email
+      subscribedToUser {
+        id
+        firstName
+        lastName
+        email
+        subscribedToUser {
+          id
+          firstName
+          lastName
+        }
+      }
+    }
+  }
+}
+
 
 Create gql requests:
 
