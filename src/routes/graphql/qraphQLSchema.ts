@@ -194,7 +194,7 @@ const query = new GraphQLObjectType({
     memberType: {
       type: MemberType,
       args: {
-        id: { type: UUIDScalar },
+        id: { type: GraphQLID },
       },
       resolve: async (parent, args, context: ContextType) => {
         const memberType = await context.db.memberTypes.findOne({
@@ -422,7 +422,7 @@ const mutation = new GraphQLObjectType({
     updateMemberType: {
       type: MemberType,
       args: {
-        id: { type: new GraphQLNonNull(UUIDScalar) },
+        id: { type: new GraphQLNonNull(GraphQLID) },
         input: { type: new GraphQLNonNull(UpdateMemberTypeInputType) },
       },
       resolve: async (parent, { id, input }, context: ContextType) => {
