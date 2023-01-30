@@ -9,6 +9,7 @@ import {
   GraphQLSchema,
   GraphQLInputObjectType,
   GraphQLNonNull,
+  GraphQLScalarType,
 } from 'graphql';
 
 type ContextType = {
@@ -17,14 +18,30 @@ type ContextType = {
     [key: string]: any;
   };
 };
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
+}
+
+const UUIDScalar = new GraphQLScalarType({
+  name: 'UUID',
+  description: 'A universally unique identifier (UUID) as defined by RFC 4122',
+  parseValue(value) {
+    if (typeof value === 'string' && isUuid(value)) {
+      return value;
+    }
+    throw new TypeError(`Value is not a valid UUID: ${value}`);
+  },
+});
 
 const PostType = new GraphQLObjectType({
   name: 'Post',
   fields: {
-    id: { type: GraphQLID },
+    id: { type: UUIDScalar },
     title: { type: GraphQLString },
     content: { type: GraphQLString },
-    userId: { type: GraphQLID },
+    userId: { type: UUIDScalar },
   },
 });
 
@@ -40,14 +57,14 @@ const MemberType = new GraphQLObjectType({
 const ProfileType = new GraphQLObjectType({
   name: 'Profile',
   fields: {
-    id: { type: GraphQLID },
+    id: { type: UUIDScalar },
     avatar: { type: GraphQLString },
     sex: { type: GraphQLString },
     birthday: { type: GraphQLInt },
     country: { type: GraphQLString },
     street: { type: GraphQLString },
     city: { type: GraphQLString },
-    userId: { type: GraphQLID },
+    userId: { type: UUIDScalar },
     memberTypeId: { type: GraphQLID },
     memberType: {
       type: MemberType,
@@ -61,18 +78,18 @@ const ProfileType = new GraphQLObjectType({
 const UserMutationResponse = new GraphQLObjectType({
   name: 'UserMutationResponse',
   fields: {
-    id: { type: GraphQLID },
+    id: { type: UUIDScalar },
     firstName: { type: GraphQLString },
     lastName: { type: GraphQLString },
     email: { type: GraphQLString },
-    subscribedToUserIds: { type: new GraphQLList(GraphQLID) },
+    subscribedToUserIds: { type: new GraphQLList(UUIDScalar) },
   },
 });
 
 const UserType: any = new GraphQLObjectType({
   name: 'User',
   fields: () => ({
-    id: { type: GraphQLID },
+    id: { type: UUIDScalar },
     firstName: { type: GraphQLString },
     lastName: { type: GraphQLString },
     email: { type: GraphQLString },
@@ -88,7 +105,7 @@ const UserType: any = new GraphQLObjectType({
         return context.loaders.profileLoader.load(parent.id, 'profile');
       },
     },
-    subscribedToUserIds: { type: new GraphQLList(GraphQLID) },
+    subscribedToUserIds: { type: new GraphQLList(UUIDScalar) },
     subscribedToUser: {
       type: new GraphQLList(UserType),
       resolve: async (parent, args, context: ContextType) => {
@@ -111,7 +128,7 @@ const query = new GraphQLObjectType({
     user: {
       type: UserType,
       args: {
-        id: { type: GraphQLID },
+        id: { type: UUIDScalar },
       },
       resolve: async (parent, args, context: ContextType) => {
         const user = await context.loaders.userLoader.load(args.id);
@@ -131,7 +148,7 @@ const query = new GraphQLObjectType({
     profile: {
       type: ProfileType,
       args: {
-        id: { type: GraphQLID },
+        id: { type: UUIDScalar },
       },
       resolve: async (parent, args, context: ContextType) => {
         const profile = await context.db.profiles.findOne({
@@ -154,7 +171,7 @@ const query = new GraphQLObjectType({
     post: {
       type: PostType,
       args: {
-        id: { type: GraphQLID },
+        id: { type: UUIDScalar },
       },
       resolve: async (parent, args, context: ContextType) => {
         const post = await context.db.posts.findOne({
@@ -177,7 +194,7 @@ const query = new GraphQLObjectType({
     memberType: {
       type: MemberType,
       args: {
-        id: { type: GraphQLID },
+        id: { type: UUIDScalar },
       },
       resolve: async (parent, args, context: ContextType) => {
         const memberType = await context.db.memberTypes.findOne({
@@ -256,7 +273,7 @@ const CreateProfileInputType = new GraphQLInputObjectType({
     country: { type: new GraphQLNonNull(GraphQLString) },
     street: { type: new GraphQLNonNull(GraphQLString) },
     city: { type: new GraphQLNonNull(GraphQLString) },
-    userId: { type: new GraphQLNonNull(GraphQLID) },
+    userId: { type: new GraphQLNonNull(UUIDScalar) },
     memberTypeId: { type: new GraphQLNonNull(GraphQLID) },
   },
   description: 'Profile input type',
@@ -271,7 +288,7 @@ const UpdateProfileInputType = new GraphQLInputObjectType({
     country: { type: GraphQLString },
     street: { type: GraphQLString },
     city: { type: GraphQLString },
-    userId: { type: GraphQLID },
+    userId: { type: UUIDScalar },
     memberTypeId: { type: GraphQLID },
   },
   description: 'Profile input type',
@@ -282,7 +299,7 @@ const CreatePostInputType = new GraphQLInputObjectType({
   fields: {
     title: { type: new GraphQLNonNull(GraphQLString) },
     content: { type: new GraphQLNonNull(GraphQLString) },
-    userId: { type: new GraphQLNonNull(GraphQLID) },
+    userId: { type: new GraphQLNonNull(UUIDScalar) },
   },
   description: 'Post input type',
 });
@@ -292,7 +309,7 @@ const UpdatePostInputType = new GraphQLInputObjectType({
   fields: {
     title: { type: GraphQLString },
     content: { type: GraphQLString },
-    userId: { type: GraphQLID },
+    userId: { type: UUIDScalar },
   },
   description: 'Post input type',
 });
@@ -309,7 +326,7 @@ const UpdateMemberTypeInputType = new GraphQLInputObjectType({
 const SubccribeInputType = new GraphQLInputObjectType({
   name: 'SubccribeToInput',
   fields: {
-    userId: { type: new GraphQLNonNull(GraphQLID) },
+    userId: { type: new GraphQLNonNull(UUIDScalar) },
   },
   description: 'SubccribeTo input type',
 });
@@ -329,7 +346,7 @@ const mutation = new GraphQLObjectType({
     updateUser: {
       type: UserMutationResponse,
       args: {
-        id: { type: new GraphQLNonNull(GraphQLID) },
+        id: { type: new GraphQLNonNull(UUIDScalar) },
         input: { type: new GraphQLNonNull(UpdateUserInputType) },
       },
       resolve: async (parent, { id, input }, context: ContextType) => {
@@ -349,13 +366,20 @@ const mutation = new GraphQLObjectType({
         input: { type: new GraphQLNonNull(CreateProfileInputType) },
       },
       resolve: async (parent, { input }, context: ContextType) => {
+        const profile = await context.db.profiles.findOne({
+          key: 'userId',
+          equals: input.userId,
+        });
+        if (profile) {
+          throw new Error('Profile already exists');
+        }
         return await context.db.profiles.create(input);
       },
     },
     updateProfile: {
       type: ProfileType,
       args: {
-        id: { type: new GraphQLNonNull(GraphQLID) },
+        id: { type: new GraphQLNonNull(UUIDScalar) },
         input: { type: new GraphQLNonNull(UpdateProfileInputType) },
       },
       resolve: async (parent, { id, input }, context: ContextType) => {
@@ -381,7 +405,7 @@ const mutation = new GraphQLObjectType({
     updatePost: {
       type: PostType,
       args: {
-        id: { type: new GraphQLNonNull(GraphQLID) },
+        id: { type: new GraphQLNonNull(UUIDScalar) },
         input: { type: new GraphQLNonNull(UpdatePostInputType) },
       },
       resolve: async (parent, { id, input }, context: ContextType) => {
@@ -398,7 +422,7 @@ const mutation = new GraphQLObjectType({
     updateMemberType: {
       type: MemberType,
       args: {
-        id: { type: new GraphQLNonNull(GraphQLID) },
+        id: { type: new GraphQLNonNull(UUIDScalar) },
         input: { type: new GraphQLNonNull(UpdateMemberTypeInputType) },
       },
       resolve: async (parent, { id, input }, context: ContextType) => {
@@ -415,7 +439,7 @@ const mutation = new GraphQLObjectType({
     subscribeTo: {
       type: UserType,
       args: {
-        id: { type: new GraphQLNonNull(GraphQLID) },
+        id: { type: new GraphQLNonNull(UUIDScalar) },
         input: { type: new GraphQLNonNull(SubccribeInputType) },
       },
       resolve: async (parent, { id, input }, context: ContextType) => {
@@ -443,7 +467,7 @@ const mutation = new GraphQLObjectType({
     unsubscribeTo: {
       type: UserType,
       args: {
-        id: { type: new GraphQLNonNull(GraphQLID) },
+        id: { type: new GraphQLNonNull(UUIDScalar) },
         input: { type: new GraphQLNonNull(SubccribeInputType) },
       },
       resolve: async (parent, { id, input }, context: ContextType) => {
