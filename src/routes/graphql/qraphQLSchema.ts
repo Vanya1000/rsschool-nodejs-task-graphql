@@ -86,7 +86,7 @@ const UserMutationResponse = new GraphQLObjectType({
   },
 });
 
-const UserType: any = new GraphQLObjectType({
+const UserType: GraphQLObjectType<any, ContextType> = new GraphQLObjectType({
   name: 'User',
   fields: () => ({
     id: { type: UUIDScalar },
@@ -109,7 +109,7 @@ const UserType: any = new GraphQLObjectType({
     subscribedToUser: {
       type: new GraphQLList(UserType),
       resolve: async (parent, args, context: ContextType) => {
-        const userSubscribedToIds = parent.subscribedToUserIds;
+        const userSubscribedToIds: string[] = parent.subscribedToUserIds;
         return await context.loaders.userLoader.loadMany(userSubscribedToIds);
       },
     },
